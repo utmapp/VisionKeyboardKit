@@ -15,7 +15,7 @@
 //
 
 import Combine
-import Dispatch
+import os
 
 /// Events posted by the keyboard
 public enum KeyboardEvent {
@@ -217,7 +217,7 @@ final class KeyboardEventSubject: Subject {
     typealias Output = KeyboardEvent
     typealias Failure = Never
 
-    private static var subjectsLock = DispatchSemaphore(value: 1)
+    private static var subjectsLock = OSAllocatedUnfairLock()
     private static var allSubjects: [KeyboardIdentifier: Weak<KeyboardEventSubject>] = [:]
     private let id: KeyboardIdentifier
     private let underlyingSubject = PassthroughSubject<Output, Failure>()
@@ -227,23 +227,21 @@ final class KeyboardEventSubject: Subject {
     }
 
     static func `for`(_ id: KeyboardIdentifier) -> KeyboardEventSubject {
-        subjectsLock.wait()
-        defer {
-            subjectsLock.signal()
-        }
-        if let w = allSubjects[id], let s = w.ref {
-            return s
-        } else {
-            let s = KeyboardEventSubject(for: id)
-            allSubjects[id] = Weak(ref: s)
-            return s
+        subjectsLock.withLock {
+            if let w = allSubjects[id], let s = w.ref {
+                return s
+            } else {
+                let s = KeyboardEventSubject(for: id)
+                allSubjects[id] = Weak(ref: s)
+                return s
+            }
         }
     }
 
     deinit {
-        Self.subjectsLock.wait()
-        Self.allSubjects.removeValue(forKey: id)
-        Self.subjectsLock.signal()
+        Self.subjectsLock.withLock {
+            _ = Self.allSubjects.removeValue(forKey: id)
+        }
     }
 
     func send(subscription: Subscription) {
