@@ -16,6 +16,8 @@
 
 import SwiftUI
 
+private let kDebounceTime: Duration = .milliseconds(25)
+
 struct KeyboardButtonStyle: PrimitiveButtonStyle {
     let isDark: Bool
     let isToggled: Bool
@@ -26,20 +28,49 @@ struct KeyboardButtonStyle: PrimitiveButtonStyle {
     let onTouchUp: () -> Void
 
     @State private var isPressed: Bool = false
-
-    private func dragGesture(configuration: Configuration) -> some Gesture {
-        DragGesture(minimumDistance: 0)
-                    .onChanged({ value in
+    @State private var debounceTask: Task<Void, Never>?
+    
+    private func spatialGesture(configuration: Configuration) -> some Gesture {
+        SpatialEventGesture()
+            .onChanged { events in
+                for event in events {
+                    switch event.kind {
+                    case .indirectPinch, .pointer, .touch:
                         if !isPressed {
                             isPressed = true
                             onTouchDown()
                         }
-                    })
-                    .onEnded { _ in
+                        // touch events require debouncing
+                        if event.kind == .touch {
+                            debounceTask?.cancel()
+                            debounceTask = nil
+                        }
+                    default: break
+                    }
+                }
+            }
+            .onEnded { events in
+                for event in events {
+                    switch event.kind {
+                    case .indirectPinch, .pointer:
                         isPressed = false
                         onTouchUp()
                         configuration.trigger()
+                    case .touch:
+                        // ignore any .ended phase followed immediately by an .active phase
+                        let trigger = configuration.trigger
+                        debounceTask = Task { @MainActor in
+                            try? await Task.sleep(for: kDebounceTime)
+                            if !Task.isCancelled {
+                                isPressed = false
+                                onTouchUp()
+                                trigger()
+                            }
+                        }
+                    default: break
                     }
+                }
+            }
     }
 
     func makeBody(configuration: Configuration) -> some View {
@@ -75,7 +106,7 @@ struct KeyboardButtonStyle: PrimitiveButtonStyle {
         .frame(width: width + 4, height: height + 4)
         .hoverEffect()
         .frame(depth: isPressed ? 0 : 12)
-        .gesture(dragGesture(configuration: configuration))
+        .gesture(spatialGesture(configuration: configuration))
     }
 }
 
