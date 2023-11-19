@@ -20,12 +20,6 @@ import RealityKit
 private let kDebounceTime: Duration = .milliseconds(25)
 
 struct KeyboardButtonStyle: PrimitiveButtonStyle {
-    private enum Phase {
-        case inactive
-        case pressed
-        case released
-    }
-
     let isDark: Bool
     let isToggled: Bool
     let fontSize: CGFloat
@@ -35,7 +29,7 @@ struct KeyboardButtonStyle: PrimitiveButtonStyle {
     let onTouchDown: () -> Void
     let onTouchUp: () -> Void
 
-    @State private var phase: Phase = .inactive
+    @State private var isPressed: Bool = false
     @State private var debounceTask: Task<Void, Never>?
     @Environment(KeyboardState.self) private var state
 
@@ -45,8 +39,8 @@ struct KeyboardButtonStyle: PrimitiveButtonStyle {
                 for event in events {
                     switch event.kind {
                     case .indirectPinch, .pointer, .touch:
-                        if phase != .pressed {
-                            phase = .pressed
+                        if !isPressed {
+                            isPressed = true
                             onTouchDown()
                         }
                         // touch events require debouncing
@@ -62,7 +56,7 @@ struct KeyboardButtonStyle: PrimitiveButtonStyle {
                 for event in events {
                     switch event.kind {
                     case .indirectPinch, .pointer:
-                        phase = .released
+                        isPressed = false
                         onTouchUp()
                         configuration.trigger()
                     case .touch:
@@ -71,7 +65,7 @@ struct KeyboardButtonStyle: PrimitiveButtonStyle {
                         debounceTask = Task { @MainActor in
                             try? await Task.sleep(for: kDebounceTime)
                             if !Task.isCancelled {
-                                phase = .released
+                                isPressed = false
                                 onTouchUp()
                                 trigger()
                             }
@@ -84,18 +78,13 @@ struct KeyboardButtonStyle: PrimitiveButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         ZStack {
-            if phase != .inactive {
+            if isPressed {
                 // we only create the RealityView when the button is activated
                 // this is where the click sound will orginate from
                 RealityView { content in
                     content.add(state.clicker.entity)
-                }.onChange(of: phase) { oldValue, newValue in
-                    if phase == .released {
-                        Task { @MainActor in
-                            await state.clicker.play(sound: clickSound)
-                            // once we are inactive, destroy the RealityView
-                            phase = .inactive
-                        }
+                    Task {
+                        state.clicker.play(sound: clickSound)
                     }
                 }
             }
@@ -118,7 +107,7 @@ struct KeyboardButtonStyle: PrimitiveButtonStyle {
                     .background(in: Capsule())
                     .backgroundStyle(.shadow(.drop(radius: 2, x: 2, y: 2)))
             }
-            if phase == .pressed {
+            if isPressed {
                 Capsule()
                     .frame(width: width+8, height: height+8)
                     .foregroundStyle(.white.opacity(0.25))
@@ -129,7 +118,7 @@ struct KeyboardButtonStyle: PrimitiveButtonStyle {
         }
         .frame(width: width + 4, height: height + 4)
         .hoverEffect()
-        .frame(depth: phase == .pressed ? 0 : 12)
+        .frame(depth: isPressed ? 0 : 12)
         .gesture(spatialGesture(configuration: configuration))
     }
 }

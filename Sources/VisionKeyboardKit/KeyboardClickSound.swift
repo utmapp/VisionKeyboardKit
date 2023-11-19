@@ -88,7 +88,7 @@ class KeyboardClickSound {
         }
     }
 
-    private func withAmbientSession(_ callback: () async -> Void) async {
+    private func withAmbientSession(_ callback: () -> Void) {
         let session = AVAudioSession.sharedInstance()
         let oldCategory = session.category
         let oldMode = session.mode
@@ -96,7 +96,7 @@ class KeyboardClickSound {
         let oldOptions = session.categoryOptions
         do {
             try session.setCategory(.ambient, mode: .default, policy: .default, options: .mixWithOthers)
-            await callback()
+            callback()
             try session.setCategory(oldCategory, mode: oldMode, policy: oldPolicy, options: oldOptions)
         } catch {
             print(error)
@@ -104,35 +104,26 @@ class KeyboardClickSound {
     }
 
     @MainActor
-    private func play(_ player: AudioPlaybackController?) async {
+    private func play(_ player: AudioPlaybackController?) {
         guard let player = player else {
             return
         }
-        await withAmbientSession {
+        withAmbientSession {
             if player.isPlaying {
-                player.stop()
-                player.completionHandler?()
+                player.seek(to: .zero)
             }
-            await withCheckedContinuation { continuation in
-                player.completionHandler = {
-                    player.completionHandler = nil
-                    continuation.resume()
-                }
-                player.play()
-            }
+            player.play()
         }
     }
 
     /// Play the click sound
-    ///
-    /// Will return asynchronously when the sound finishes playing.
     /// - Parameter sound: Which sound to play
     @MainActor
-    func play(sound: File = .normal) async {
+    func play(sound: File = .normal) {
         switch sound {
-        case .normal: await play(pressNormalPlayer)
-        case .delete: await play(pressDeletePlayer)
-        case .modifier: await play(pressModifierPlayer)
+        case .normal: play(pressNormalPlayer)
+        case .delete: play(pressDeletePlayer)
+        case .modifier: play(pressModifierPlayer)
         }
     }
 }
