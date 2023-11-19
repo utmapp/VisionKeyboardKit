@@ -20,7 +20,7 @@ struct KeyboardLayoutANSI: View {
     var body: some View {
         VStack {
             HStack {
-                KeyboardKeyView(key: "⎋", code: .keyEscape, isDark: true)
+                KeyboardKeyView(key: "⎋", code: .keyEscape, isDark: true, clickSound: .delete)
                 KeyboardKeyView(key: "F1", code: .keyF1)
                 KeyboardKeyView(key: "F2", code: .keyF2)
                 KeyboardKeyView(key: "F3", code: .keyF3)
@@ -48,7 +48,7 @@ struct KeyboardLayoutANSI: View {
                 KeyboardKeyView(key: "0", shift: ")", code: .key0)
                 KeyboardKeyView(key: "-", shift: "_", code: .keyMinus)
                 KeyboardKeyView(key: "=", shift: "+", code: .keyEqual)
-                KeyboardKeyView(key: "⌫", code: .keyBackspace, width: 65, isDark: true)
+                KeyboardKeyView(key: "⌫", code: .keyBackspace, width: 65, isDark: true, clickSound: .delete)
             }
             HStack {
                 KeyboardKeyView(key: "⇥", code: .keyTab, width: 65, isDark: true)

@@ -38,7 +38,7 @@ struct KeyboardLayoutTenKeys: View {
                 KeyboardKeyView(key: "-", code: .keyKeypadMinus)
             }
             GridRow {
-                KeyboardKeyView(key: "Del", code: .keyDelete)
+                KeyboardKeyView(key: "Del", code: .keyDelete, clickSound: .delete)
                 KeyboardKeyView(key: "End", code: .keyEnd)
                 KeyboardKeyView(key: "PgDn", code: .keyPageDown)
                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])

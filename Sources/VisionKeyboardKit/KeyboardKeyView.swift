@@ -24,6 +24,7 @@ struct KeyboardKeyView: View {
     var height: CGFloat = 50
     var isDark: Bool = false
     var isToggled: Bool = false
+    var clickSound: KeyboardClickSound.File = .normal
     var action: () -> Void = {}
 
     @Environment(KeyboardState.self) private var state
@@ -35,7 +36,7 @@ struct KeyboardKeyView: View {
     var body: some View {
         Button(action: action) {
             Text(isShifted ? shift ?? key : key)
-        }.buttonStyle(.keyboardButton(isDark: isDark, isToggled: isToggled, fontSize: width > 50 && key.count > 1 ? 20 : key.count > 1 ? 16 : 24, width: width, height: height, onTouchDown: {
+        }.buttonStyle(.keyboardButton(isDark: isDark, isToggled: isToggled, fontSize: width > 50 && key.count > 1 ? 20 : key.count > 1 ? 16 : 24, width: width, height: height, clickSound: clickSound, onTouchDown: {
             state.keyDown(code)
         }, onTouchUp: {
             state.keyUp(code)
@@ -63,7 +64,7 @@ struct KeyboardToggleKeyView: View {
     }
 
     var body: some View {
-        KeyboardKeyView(key: key, code: code, width: width, height: height, isDark: isDark, isToggled: isOn) {
+        KeyboardKeyView(key: key, code: code, width: width, height: height, isDark: isDark, isToggled: isOn, clickSound: .modifier) {
             if isOn {
                 state.modifier.remove(modifier)
                 if let otherModifier = otherModifier {

@@ -21,6 +21,8 @@ class KeyboardState {
     private let id: KeyboardIdentifier
     private let subject: KeyboardEventSubject
 
+    let clicker = KeyboardClickSound()
+
     var modifier: KeyboardModifier = .none
 
     init(for id: KeyboardIdentifier) {
