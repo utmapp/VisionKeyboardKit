@@ -62,7 +62,18 @@ class KeyboardClickSound {
     }()
     #endif
 
+    private lazy var isEnabled: Bool = {
+        var valid: DarwinBoolean = false
+        CFPreferencesAppSynchronize("com.apple.preferences.sounds" as CFString)
+        let enabled = CFPreferencesGetAppBooleanValue("keyboard-audio" as CFString, "com.apple.preferences.sounds" as CFString, &valid)
+        return !valid.boolValue || enabled
+    }()
+
     init() {
+        // if we disabled system sounds then do not create the players
+        guard isEnabled else {
+            return
+        }
         let pressNormalUrl = uiSoundsUrl.appending(component: "key_press_click.caf")
         let pressDeleteUrl = uiSoundsUrl.appending(component: "key_press_delete.caf")
         let pressModifierUrl = uiSoundsUrl.appending(component: "key_press_modifier.caf")
